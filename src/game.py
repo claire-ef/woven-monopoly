@@ -1,9 +1,38 @@
+# Game specific constans
 DEFAULT_PLAYERS = ["Peter", "Billy", "Charlotte", "Sweedal"]
 INITIAL_BALANCE = 16
+PASS_GO_BONUS= 1
+RENT_MULTIPLIER = 1
+FULL_SET_MULTIPLIER = 2
+
+from math import ceil
+
+class Player:
+    """
+    Represent a player of the game.
+
+    Attributes:
+        name (str): name of the player
+        balance (int | INITIAL_BALANCE): how much money the player own, starting with INITIAL_BALANCE
+        position (int): the position of the player on the board
+    """
+
+    def __init__(self, name: str, balance: int = INITIAL_BALANCE):
+        self.name = name
+        self.balance = balance
+        # all players start on GO
+        self.position = 0
+    
+    def __str__(self):
+        return f"{self.name} has ${self.balance} and is at space {self.position}."
 
 class Space:
     """ 
-    Represent a space on the game board.
+    Represent a space on the game board. 
+
+    Attributes:
+        name (str): name of the space
+        type (str): type of the space
     """
     def __init__(self, name: str, type: str):
         self.name = name
@@ -14,55 +43,172 @@ class Space:
 
 class Go(Space):
     """
-    Represent a type of space that is GO.
+    Represent a type of space that is the go.
     """
     pass
 
 class Property(Space):
     """
     Represent a type of space that is a property.
+
+     Attributes:
+        price (int): cost to purchase the property
+        colour (str): colour of the property
+        owner (Player | None): the player who currently owns the property
+        rent (int): amount of money to pay the owner if land on the property.
+                    It is proportional to the property price and can be adjusted.
+                    This amount is before applying the full set bonus.
+
     """
-    def __init__(self, name: str, type: str, price: int, colour: str):
-        super().__init__(name, type)
+    def __init__(self, name: str, type: str, price: int, colour: str, owner: Player = None):
+        super().__init__(name, type = "property")
         self.price = price
         self.colour = colour
+        self.owner = owner
+        self.rent = ceil(price * RENT_MULTIPLIER)
 
     def __str__(self):
         return f"{self.type}: {self.name}, price: {self.price}, colour: {self.colour}."
 
 class Board():
     """
-    Represent a board state
+    Represent a board of the game.
+
+    Attributes:
+        spaces (list[Space]): list of spaces on the board in game play order. The first space is go.
+        size (int): the number of spaces on the board
+        sets (dict): stores different sets of properties of the same colour 
     """
     def __init__(self, spaces: list[Space]):
         self.spaces = spaces
+        self.size = len(spaces)
+
+        # group properties by colour
+        all_properties = [space for space in self.spaces if isinstance(space, Property)]
+        self.sets = dict()
+        for property in all_properties:
+            if property.colour in self.sets:
+                self.sets[property.colour].append(property)
+            else:
+                self.sets[property.colour] = [property]
     
     def __str__(self):
         return "\n".join(str(space) for space in self.spaces)
-
-class Player:
-    """
-    Represent a player state.
-    """
-
-    def __init__(self, name: str, balance: int = INITIAL_BALANCE):
-        self.name = name
-        self.balance = balance
     
-    def __str__(self):
-        return f"{self.name} has ${self.balance}."
+    def calculate_rent(self, property: Property) -> int:
+        """
+        Calculate the rent of the given property.
+        """
+        if property.owner is None: 
+            return 0
+        
+        # check if the owner of the property has the full set
+        has_full_set = all(p.owner == property.owner for p in self.sets[property.colour])
+        # increase the rent if the owner has the full set
+        if has_full_set:
+            print(f"{property.owner.name} owns the whole set. Rent is increased by {FULL_SET_MULTIPLIER} times.")
+            return ceil(property.rent * FULL_SET_MULTIPLIER)
+        return property.rent
 
 class Game:
     """
-    Represent a game state.
+    Represent the evolving state of a game.
+
+    Attributes:
+        board (Board): the game board containing spaces
+        players (list[Player]): players participating the game in playing order
+        current_player (Player): the player who is currently taking the turn
+        current_player_index (int): the index of the current player in the players list
+        is_over (bool): whether the game has ended, game ends when anyone of the player is bankrupted
     """
 
     def __init__(self, board: Board):
         self.board = board
         self.players = [Player(name) for name in DEFAULT_PLAYERS]
+        self.current_player_index = 0
+        self.current_player = self.players[self.current_player_index]
+        self.is_over = False
 
     def __str__(self):
         return ("---Board---\n" + 
                  str(self.board) +
                  "\n---Players---\n" +
                  "\n".join(str(player) for player in self.players))
+       
+    def end(self):
+        """
+        End the game if the game is over and print the result of the game.
+        """
+        if self.is_over:
+            print("Game is over!")
+            # find out which player(s) has(have) the most money remaining
+            max_balance = max(player.balance for player in self.players)
+            winners = [player for player in self.players if player.balance == max_balance]
+
+            # print game result
+            if len(winners) == 1:
+                print(f"{winners[0].name} won the game")
+            else:
+                print("There is a Tie!" + ", ".join(winner.name for winner in winners)
+                      + "won the game together!")
+    
+    def update(self, roll):
+        """
+        Apply the effect of the dice roll to the game state.
+        """
+        # get current player
+        player = self.current_player
+
+        # next posotion of the player if board is unwrapped
+        unwrapped_position = player.position + roll
+
+        # find how many time the player has past go
+        pass_go_count = unwrapped_position // self.board.size
+        if pass_go_count != 0:
+            print(f"* {player.name} past GO {pass_go_count} time(s)")
+        # update player balance for passing go
+        player.balance += pass_go_count * PASS_GO_BONUS
+
+        # find the actual next position of the player and move the player
+        player.position = unwrapped_position % self.board.size
+
+        # get the space the player landed on
+        landed_space = self.board.spaces[player.position]
+        print(f"* {player.name} landed on {landed_space.name}")
+        # check if the player landed on a property
+        if isinstance(landed_space, Property):
+            # buy the property if its not owned
+            if landed_space.owner is None:
+                print(f"* {landed_space.name} is not owned")
+                player.balance -= landed_space.price
+                landed_space.owner = player
+                # check whether the player has bankrupted
+                if player.balance < 0:
+                    # game is over if bankrupted
+                    self.is_over = True
+                    print(f"* {player.name} bankrupted when buying {landed_space.name} for {landed_space.price}")
+                else:
+                    print(f"* {player.name} bought {landed_space.name} for {landed_space.price}")
+
+            # pay rent if the property is owned by someone else
+            elif landed_space.owner is not player:
+                print(f"* {landed_space.name} is owned by {landed_space.owner.name}")
+                rent = self.board.calculate_rent(landed_space)
+                player.balance -= rent
+                landed_space.owner.balance += rent
+                # check whether the player has bankrupted
+                if player.balance < 0:
+                    # game is over if bankrupted
+                    self.is_over = True
+                    print(f"* {player.name} bankrupted when paying {landed_space.owner.name} {rent} rent for {landed_space.name}")
+                else:
+                    print(f"* {player.name} paied {landed_space.owner.name} {rent} rent for {landed_space.name}")
+
+            # elif landed_space.owner is player:
+                # potential extension for building upgardes to increase rent
+        
+        if not self.is_over:
+            # move to the next player if game is not over
+            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+            self.current_player = self.players[self.current_player_index]
+
