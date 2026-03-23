@@ -18,6 +18,7 @@ def main():
     # load json files containing board structures
     game = Game(load_board(load_json_file(args.path_to_board)))
     print("The board is loaded!")
+    print(game)
 
     # load dices rolls
     if RANDOM_DICE_ROLL:
@@ -29,15 +30,19 @@ def main():
     roll_index = 0
 
     # start game playing
+    print("".center(70, "-"))
+    print("Game has started!")
     while not game.is_over:
+        print(f"Turn {roll_index + 1}".center(70, "-"))
         # player rolls the dice
         roll_value, roll_index = get_next_roll(dice_rolls, roll_index, RANDOM_DICE_ROLL)
-        print(f"{game.current_player.name} rolled {roll_value}!")
+        print(f"{game.current_player.name} rolled {roll_value}.")
         # apply the effect of the dice roll
         game.update(roll_value)
     
     # end the game when game is over
     game.end()
+    print(game)
 
 if __name__ == "__main__":
     main()

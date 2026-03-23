@@ -4,6 +4,8 @@ INITIAL_BALANCE = 16
 PASS_GO_BONUS= 1
 RENT_MULTIPLIER = 1
 FULL_SET_MULTIPLIER = 2
+BOARD_ROW_TEMPLATE = "{:^10}{:^20}{:^10}{:^15}{:^15}"
+PLAYER_ROW_TEMPLATE = "{:^35}{:^35}"
 
 from math import ceil
 
@@ -16,7 +18,6 @@ class Player:
         balance (int | INITIAL_BALANCE): how much money the player own, starting with INITIAL_BALANCE
         position (int): the position of the player on the board
     """
-
     def __init__(self, name: str, balance: int = INITIAL_BALANCE):
         self.name = name
         self.balance = balance
@@ -58,10 +59,9 @@ class Property(Space):
         rent (int): amount of money to pay the owner if land on the property.
                     It is proportional to the property price and can be adjusted.
                     This amount is before applying the full set bonus.
-
     """
     def __init__(self, name: str, type: str, price: int, colour: str, owner: Player = None):
-        super().__init__(name, type = "property")
+        super().__init__(name, type)
         self.price = price
         self.colour = colour
         self.owner = owner
@@ -121,37 +121,32 @@ class Game:
         current_player_index (int): the index of the current player in the players list
         is_over (bool): whether the game has ended, game ends when anyone of the player is bankrupted
     """
-
     def __init__(self, board: Board):
         self.board = board
         self.players = [Player(name) for name in DEFAULT_PLAYERS]
         self.current_player_index = 0
         self.current_player = self.players[self.current_player_index]
         self.is_over = False
-
-    def __str__(self):
-        return ("---Board---\n" + 
-                 str(self.board) +
-                 "\n---Players---\n" +
-                 "\n".join(str(player) for player in self.players))
-       
+    
     def end(self):
         """
         End the game if the game is over and print the result of the game.
         """
         if self.is_over:
+            print("".center(70, "-"))
             print("Game is over!")
             # find out which player(s) has(have) the most money remaining
             max_balance = max(player.balance for player in self.players)
             winners = [player for player in self.players if player.balance == max_balance]
 
-            # print game result
+            # print who is the winner
             if len(winners) == 1:
-                print(f"{winners[0].name} won the game")
+                print(f"{winners[0].name} won the game.")
             else:
                 print("There is a Tie!" + ", ".join(winner.name for winner in winners)
                       + "won the game together!")
-    
+
+
     def update(self, roll):
         """
         Apply the effect of the dice roll to the game state.
@@ -164,8 +159,8 @@ class Game:
 
         # find how many time the player has past go
         pass_go_count = unwrapped_position // self.board.size
-        if pass_go_count != 0:
-            print(f"* {player.name} past GO {pass_go_count} time(s)")
+        for c in range(pass_go_count):
+            print(f"{player.name} got ${PASS_GO_BONUS} for passing GO.")
         # update player balance for passing go
         player.balance += pass_go_count * PASS_GO_BONUS
 
@@ -174,25 +169,25 @@ class Game:
 
         # get the space the player landed on
         landed_space = self.board.spaces[player.position]
-        print(f"* {player.name} landed on {landed_space.name}")
+        print(f"{player.name} landed on {landed_space.name}.")
         # check if the player landed on a property
         if isinstance(landed_space, Property):
             # buy the property if its not owned
             if landed_space.owner is None:
-                print(f"* {landed_space.name} is not owned")
+                print(f"{landed_space.name} is not owned by anyone.")
                 player.balance -= landed_space.price
                 landed_space.owner = player
                 # check whether the player has bankrupted
                 if player.balance < 0:
                     # game is over if bankrupted
                     self.is_over = True
-                    print(f"* {player.name} bankrupted when buying {landed_space.name} for {landed_space.price}")
+                    print(f"{player.name} bankrupted when buying {landed_space.name} for ${landed_space.price}.")
                 else:
-                    print(f"* {player.name} bought {landed_space.name} for {landed_space.price}")
+                    print(f"{player.name} bought {landed_space.name} for ${landed_space.price}.")
 
             # pay rent if the property is owned by someone else
             elif landed_space.owner is not player:
-                print(f"* {landed_space.name} is owned by {landed_space.owner.name}")
+                print(f"{landed_space.name} is owned by {landed_space.owner.name}.")
                 rent = self.board.calculate_rent(landed_space)
                 player.balance -= rent
                 landed_space.owner.balance += rent
@@ -200,9 +195,9 @@ class Game:
                 if player.balance < 0:
                     # game is over if bankrupted
                     self.is_over = True
-                    print(f"* {player.name} bankrupted when paying {landed_space.owner.name} {rent} rent for {landed_space.name}")
+                    print(f"{player.name} bankrupted when paying {landed_space.owner.name} ${rent} rent for {landed_space.name}.")
                 else:
-                    print(f"* {player.name} paied {landed_space.owner.name} {rent} rent for {landed_space.name}")
+                    print(f"{player.name} paid {landed_space.owner.name} ${rent} rent for {landed_space.name}.")
 
             # elif landed_space.owner is player:
                 # potential extension for building upgardes to increase rent
@@ -212,3 +207,48 @@ class Game:
             self.current_player_index = (self.current_player_index + 1) % len(self.players)
             self.current_player = self.players[self.current_player_index]
 
+    def __str__(self):
+        board_heading = ["Type", "Name", "Colour", "Owned By", "On Space"]
+
+        board_print_cells = []
+        for space in self.board.spaces:
+            if isinstance(space, Go):
+                space_print_cells = [space.type, space.name, "", ""]
+            elif isinstance(space, Property):
+                if space.owner is None:
+                    space_print_cells = [space.type, space.name, space.colour, ""]
+                else:
+                    space_print_cells = [space.type, space.name, space.colour, space.owner.name]
+            board_print_cells.append(space_print_cells)
+        
+        players_heading = ["Name", "Balance"]
+        players_print_cells = []
+        players_on_space = dict()
+        for player in self.players:
+            players_print_cells.append([player.name, "$" + str(player.balance)])
+            if player.position in players_on_space:
+                players_on_space[player.position].append(player.name)
+            else:
+                players_on_space[player.position] = [player.name]
+        
+        board_str = ""
+        for space_index in range(self.board.size):
+            if space_index in players_on_space:
+                board_row = board_print_cells[space_index] + [players_on_space[space_index][0]]
+                board_str += BOARD_ROW_TEMPLATE.format(*board_row) + "\n"
+                if len(players_on_space[space_index]) > 1:
+                    for on_space_player_index in range(1, len(players_on_space[space_index])):
+                        board_row = ["", "", "", "", players_on_space[space_index][on_space_player_index]]
+                        board_str += BOARD_ROW_TEMPLATE.format(*board_row) + "\n"
+            else:
+                board_row = board_print_cells[space_index] + [""]
+                board_str += BOARD_ROW_TEMPLATE.format(*board_row) + "\n"
+
+        return ("Board".center(70, "-") + "\n" + 
+                BOARD_ROW_TEMPLATE.format(*board_heading) + "\n" +
+                board_str +
+                "Players".center(70, "-") + "\n" + 
+                PLAYER_ROW_TEMPLATE.format(*players_heading) + "\n" +
+                "\n".join([PLAYER_ROW_TEMPLATE.format(*row) for row in players_print_cells]))
+    
+    
