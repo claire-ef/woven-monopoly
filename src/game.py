@@ -95,7 +95,7 @@ class Board():
     def __str__(self):
         return "\n".join(str(space) for space in self.spaces)
     
-    def calculate_rent(self, property: Property) -> int:
+    def calculate_rent(self, property: Property, log: list[str]) -> int:
         """
         Calculate the rent of the given property.
         """
@@ -106,7 +106,7 @@ class Board():
         has_full_set = all(p.owner == property.owner for p in self.sets[property.colour])
         # increase the rent if the owner has the full set
         if has_full_set:
-            print(f"{property.owner.name} owns the whole set. Rent is increased by {FULL_SET_MULTIPLIER} times.")
+            log.append(f"{property.owner.name} owns the whole set. Rent is increased by {FULL_SET_MULTIPLIER} times.")
             return ceil(property.rent * FULL_SET_MULTIPLIER)
         return property.rent
 
@@ -147,7 +147,7 @@ class Game:
                       + "won the game together!")
 
 
-    def update(self, roll):
+    def update(self, roll, log):
         """
         Apply the effect of the dice roll to the game state.
         """
@@ -160,7 +160,7 @@ class Game:
         # find how many time the player has past go
         pass_go_count = unwrapped_position // self.board.size
         for c in range(pass_go_count):
-            print(f"{player.name} got ${PASS_GO_BONUS} for passing GO.")
+            log.append(f"{player.name} got ${PASS_GO_BONUS} for passing GO.")
         # update player balance for passing go
         player.balance += pass_go_count * PASS_GO_BONUS
 
@@ -169,35 +169,35 @@ class Game:
 
         # get the space the player landed on
         landed_space = self.board.spaces[player.position]
-        print(f"{player.name} landed on {landed_space.name}.")
+        log.append(f"{player.name} landed on {landed_space.name}.")
         # check if the player landed on a property
         if isinstance(landed_space, Property):
             # buy the property if its not owned
             if landed_space.owner is None:
-                print(f"{landed_space.name} is not owned by anyone.")
+                log.append(f"{landed_space.name} is not owned by anyone.")
                 player.balance -= landed_space.price
                 landed_space.owner = player
                 # check whether the player has bankrupted
                 if player.balance < 0:
                     # game is over if bankrupted
                     self.is_over = True
-                    print(f"{player.name} bankrupted when buying {landed_space.name} for ${landed_space.price}.")
+                    log.append(f"{player.name} bankrupted when buying {landed_space.name} for ${landed_space.price}.")
                 else:
-                    print(f"{player.name} bought {landed_space.name} for ${landed_space.price}.")
+                    log.append(f"{player.name} bought {landed_space.name} for ${landed_space.price}.")
 
             # pay rent if the property is owned by someone else
             elif landed_space.owner is not player:
-                print(f"{landed_space.name} is owned by {landed_space.owner.name}.")
-                rent = self.board.calculate_rent(landed_space)
+                log.append(f"{landed_space.name} is owned by {landed_space.owner.name}.")
+                rent = self.board.calculate_rent(landed_space, log)
                 player.balance -= rent
                 landed_space.owner.balance += rent
                 # check whether the player has bankrupted
                 if player.balance < 0:
                     # game is over if bankrupted
                     self.is_over = True
-                    print(f"{player.name} bankrupted when paying {landed_space.owner.name} ${rent} rent for {landed_space.name}.")
+                    log.append(f"{player.name} bankrupted when paying {landed_space.owner.name} ${rent} rent for {landed_space.name}.")
                 else:
-                    print(f"{player.name} paid {landed_space.owner.name} ${rent} rent for {landed_space.name}.")
+                    log.append(f"{player.name} paid {landed_space.owner.name} ${rent} rent for {landed_space.name}.")
 
             # elif landed_space.owner is player:
                 # potential extension for building upgardes to increase rent
@@ -208,8 +208,10 @@ class Game:
             self.current_player = self.players[self.current_player_index]
 
     def __str__(self):
+        """
+        Create a string representing the state of game for printing.
+        """
         board_heading = ["Type", "Name", "Colour", "Owned By", "On Space"]
-
         board_print_cells = []
         for space in self.board.spaces:
             if isinstance(space, Go):

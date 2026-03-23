@@ -3,6 +3,7 @@ from src.game import Game
 from src.utils import load_json_file, load_board, get_next_roll
 
 RANDOM_DICE_ROLL = False
+PRINT_LOG = False
 
 def main():
     """
@@ -27,18 +28,23 @@ def main():
     else:
         # use preset dice rolls
         dice_rolls = load_json_file(args.path_to_rolls)
-    roll_index = 0
 
     # start game playing
     print("".center(70, "-"))
     print("Game has started!")
+    log = []
+    roll_index = 0
     while not game.is_over:
-        print(f"Turn {roll_index + 1}".center(70, "-"))
+        log.append(f"Turn {roll_index + 1}".center(70, "-"))
         # player rolls the dice
         roll_value, roll_index = get_next_roll(dice_rolls, roll_index, RANDOM_DICE_ROLL)
-        print(f"{game.current_player.name} rolled {roll_value}.")
+        log.append(f"{game.current_player.name} rolled {roll_value}.")
         # apply the effect of the dice roll
-        game.update(roll_value)
+        game.update(roll_value, log)
+    
+    # print the process of the game if PRINT_LOG is True
+    if PRINT_LOG:
+        print("\n".join(log))
     
     # end the game when game is over
     game.end()
