@@ -1,8 +1,8 @@
 # Woven Monopoly
-A python command-line application to play the game of Woven Monopoly.
+A Python command-line application to play the game of Woven Monopoly.
 
 ## Prerequisites
-This application was written and tested using **Python 3.11.8**. It only uses Python standard libararies.
+This application was written and tested using **Python 3.11.8**. It only uses Python standard libraries.
 
 ## Installation
 To clone the repository:
@@ -11,24 +11,24 @@ git clone https://github.com/claire-ef/woven-monopoly.git
 cd woven-monopoly
 ```
 ## Code Execution
-To simulate game with rolls_1.json:
+To simulate the game with rolls_1.json:
 ```bash
 python main.py data/board.json -p data/rolls_1.json
 ```
 
-To simulate game with rolls_2.json:
+To simulate the game with rolls_2.json:
 ```bash
 python main.py data/board.json -p data/rolls_2.json
 ```
 
 ### Viewing Game Progress
 By default, the game runs quietly and outputs only the final required results. To the game progress each turn, the `-v` (verbosity) flag can be used:
-* `python main.py data/board.json -p data/rolls_1.json -v`: shows inital and ending game state
+* `python main.py data/board.json -p data/rolls_1.json -v`: shows the initial and ending game state
 * `python main.py data/board.json -p data/rolls_1.json -v 2`: shows all player actions
 * `python main.py data/board.json -p data/rolls_1.json -v 3`: shows board state at every turn
 
 ### Command-Line Options
-While the game adheres to the requested rules by default, different game play options are
+While the game adheres to the requested rules by default, different gameplay options are
 available using command-line arguments.
 
 | Argument | Description | Example |
