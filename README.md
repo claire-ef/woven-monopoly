@@ -13,7 +13,7 @@ cd woven-monopoly
 To create and activate a virtual environment:
 ```bash
 # create
-python3 -m venv .venv
+python3.11 -m venv .venv
 # activate (Mac)
 source .venv/bin/activate
 # activate (Windows)
