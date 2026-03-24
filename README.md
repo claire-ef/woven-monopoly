@@ -10,6 +10,15 @@ To clone the repository:
 git clone https://github.com/claire-ef/woven-monopoly.git
 cd woven-monopoly
 ```
+To create and activate a virtual environment:
+```bash
+# create
+python3 -m venv .venv
+# activate (Mac)
+source .venv/bin/activate
+# activate (Windows)
+.venv\Scripts\activate
+```
 ## Code Execution
 To simulate the game with rolls_1.json:
 ```bash
