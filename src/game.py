@@ -1,9 +1,6 @@
-from math import ceil
-from src.constants import (INITIAL_BALANCE,
-                           RENT_MULTIPLIER,
-                           FULL_SET_MULTIPLIER,
+from src.constants import (FULL_SET_MULTIPLIER,
                            SEPERATOR_LENGTH,
-                           PASS_GO_BONUS,
+                           DEFAULT_PASS_GO_BONUS,
                            COLOURS,
                            BOARD_ROW_TEMPLATE,
                            PLAYER_ROW_TEMPLATE)
@@ -15,11 +12,11 @@ class Player:
 
     Attributes:
         name (str): name of the player
-        balance (int | INITIAL_BALANCE): how much money the player own,
+        balance (float | INITIAL_BALANCE): how much money the player own,
                                          starting with INITIAL_BALANCE
         position (int): the position of the player on the board
     """
-    def __init__(self, name: str, balance: int = INITIAL_BALANCE):
+    def __init__(self, name: str, balance: float):
         self.name = name
         self.balance = balance
         # all players start on GO
@@ -58,20 +55,20 @@ class Property(Space):
     Represent a type of space that is a property.
 
      Attributes:
-        price (int): cost to purchase the property
+        price (float): cost to purchase the property
         colour (str): colour of the property
         owner (Player | None): the player who currently owns the property
-        rent (int): amount of money to pay the owner if land on the property.
+        rent (float): amount of money to pay the owner if land on the property.
                     Proportional to the property price and can be adjusted.
                     This amount is before applying the full set bonus.
     """
-    def __init__(self, name: str, type: str, price: int, colour: str,
-                 owner: Player = None):
+    def __init__(self, name: str, type: str, price: float, colour: str,
+                 rent_multiplier: float, owner: Player = None):
         super().__init__(name, type)
         self.price = price
         self.colour = colour
         self.owner = owner
-        self.rent = ceil(price * RENT_MULTIPLIER)
+        self.rent = price * rent_multiplier
 
     def __str__(self):
         return (f"{self.type}: {self.name}, price: {self.price}, "
@@ -105,7 +102,7 @@ class Board():
     def __str__(self):
         return "\n".join(str(space) for space in self.spaces)
 
-    def calculate_rent(self, property: Property, log: list[str]) -> int:
+    def calculate_rent(self, property: Property, log: list[str]) -> float:
         """
         Calculate the rent of the given property.
         """
@@ -119,7 +116,7 @@ class Board():
         if has_full_set:
             log.append(f"{property.owner.name} owns the whole set. "
                        f"Rent is multiplied by {FULL_SET_MULTIPLIER}.")
-            return ceil(property.rent * FULL_SET_MULTIPLIER)
+            return property.rent * FULL_SET_MULTIPLIER
         return property.rent
 
 
@@ -135,9 +132,9 @@ class Game:
         is_over (bool): whether the game has ended, game ends when anyone of
                         the players is bankrupted
     """
-    def __init__(self, board: Board, player_names: list[str]):
+    def __init__(self, board: Board, players: list[Player]):
         self.board = board
-        self.players = [Player(name) for name in player_names]
+        self.players = players
         self.current_player_index = 0
         self.current_player = self.players[self.current_player_index]
         self.is_over = False
@@ -174,9 +171,10 @@ class Game:
         # find how many time the player has past go
         pass_go_count = unwrapped_position // self.board.size
         for _ in range(pass_go_count):
-            log.append(f"{player.name} got ${PASS_GO_BONUS} for passing GO.")
+            log.append(f"{player.name} got ${DEFAULT_PASS_GO_BONUS} for "
+                       f"passing GO.")
         # update player balance for passing go
-        player.balance += pass_go_count * PASS_GO_BONUS
+        player.balance += pass_go_count * DEFAULT_PASS_GO_BONUS
 
         # find the actual next position of the player and move the player
         player.position = unwrapped_position % self.board.size
@@ -258,7 +256,7 @@ class Game:
         players_on_space = dict()
         for player in self.players:
             players_print_cells.append([player.name, "$"
-                                        + str(player.balance)])
+                                        + str(round(player.balance, 1))])
             if player.position in players_on_space:
                 players_on_space[player.position].append(player.name)
             else:

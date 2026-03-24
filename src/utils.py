@@ -2,7 +2,9 @@ import json
 import random
 import argparse
 from src.game import Board, Go, Property
-from src.constants import DEFAULT_PLAYERS
+from src.constants import (DEFAULT_PLAYERS,
+                           DEFAULT_INITIAL_BALANCE,
+                           DEFAULT_RENT_MULTIPLIER)
 
 
 def load_json_file(path: str) -> list:
@@ -20,12 +22,14 @@ def load_json_file(path: str) -> list:
     return data
 
 
-def load_board(board_data: list[dict]) -> Board:
+def load_board(board_data: list[dict], rent_multiplier: float) -> Board:
     """
     Load the board from the raw data format
 
     Args:
         board_data (list[dict]): a list of space information of the board
+        rent_multiplier (float): the proportion of the rent to the price of
+                                 the property
 
     Returns:
         The loaded board of Class Board
@@ -34,6 +38,7 @@ def load_board(board_data: list[dict]) -> Board:
     # create spaces of different types
     for space_data in board_data:
         if space_data.get("type") == "property":
+            space_data["rent_multiplier"] = rent_multiplier
             board.append(Property(**space_data))
         elif space_data.get("type") == "go":
             board.append(Go(**space_data))
@@ -72,25 +77,47 @@ def get_next_roll(rolls: list[int], current_roll_index: int,
 
 
 def get_inputs():
+    """
+    Parse command line inputs and return the arguments.
+    """
     # set up parser to get game options from command line input
     parser = argparse.ArgumentParser(prog="woven_monopoly",
                                      description="This is a application that "
                                      "plays the game of Woven Monopoly")
+
     parser.add_argument("path_to_board", type=str,
                         help="Path to the board json file.")
+
     parser.add_argument("-p", "--path_to_rolls", type=str,
                         metavar="path_to_rolls",
                         help="Path to the dice rolls json file")
+
     parser.add_argument("-r", "--random_dice_roll",
                         action="store_true",
                         help="Whether or not to use random dice rolls, the "
-                        "default is false")
+                             "default is false")
+
+    parser.add_argument("--initial_balance",
+                        type=float,
+                        default=DEFAULT_INITIAL_BALANCE,
+                        help=f"The amount of money each player starts the "
+                             f"game with, the default is "
+                             f"${DEFAULT_INITIAL_BALANCE}")
+    
+    parser.add_argument("--rent_multiplier",
+                        type=float,
+                        default=DEFAULT_RENT_MULTIPLIER,
+                        help=f"The proportion of the rent to the price of the"
+                             f"property the default is "
+                             f"${DEFAULT_RENT_MULTIPLIER}")
+    
     parser.add_argument("--players", nargs="+", default=DEFAULT_PLAYERS,
                         metavar="player_name",
                         help="Participating player names in game order, "
                              "seperated by space. If not provided, a set of "
                              "four default players are used: Peter, Billy, "
                              "Charlotte, Sweedal")
+
     args = parser.parse_args()
 
     # check the validity of command line inputs

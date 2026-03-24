@@ -1,4 +1,4 @@
-from src.game import Game
+from src.game import Game, Player
 from src.utils import load_json_file, load_board, get_next_roll
 from src.constants import (MONOPOLY_LOGO,
                            SEPERATOR_LENGTH,
@@ -23,7 +23,11 @@ def main():
         dice_rolls = load_json_file(args.path_to_rolls)
 
     # load json files containing board structures
-    game = Game(load_board(load_json_file(args.path_to_board)), args.players)
+    players = [Player(player_name, args.initial_balance)
+               for player_name in args.players]
+    game = Game(load_board(load_json_file(args.path_to_board),
+                           args.rent_multiplier),
+                players)
 
     print(MONOPOLY_LOGO)
     print(" The board is loaded! ".center(SEPERATOR_LENGTH, "~"))
