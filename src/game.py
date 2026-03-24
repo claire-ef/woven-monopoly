@@ -3,7 +3,8 @@ from src.constants import (FULL_SET_MULTIPLIER,
                            DEFAULT_PASS_GO_BONUS,
                            COLOURS,
                            BOARD_ROW_TEMPLATE,
-                           PLAYER_ROW_TEMPLATE)
+                           PLAYER_ROW_TEMPLATE,
+                           RESULT_ROW_TEMPLATE)
 
 
 class Player:
@@ -114,8 +115,8 @@ class Board():
                            for p in self.sets[property.colour])
         # increase the rent if the owner has the full set
         if has_full_set:
-            log.append(f"{property.owner.name} owns the whole set. "
-                       f"Rent is multiplied by {FULL_SET_MULTIPLIER}.")
+            log.append((2, f"{property.owner.name} owns the whole set. "
+                           f"Rent is multiplied by {FULL_SET_MULTIPLIER}."))
             return property.rent * FULL_SET_MULTIPLIER
         return property.rent
 
@@ -139,28 +140,64 @@ class Game:
         self.current_player = self.players[self.current_player_index]
         self.is_over = False
 
-    def end(self):
+    def end(self, log: list[tuple[int, str]]):
         """
-        End the game if the game is over and print the result of the game.
+        End the game if the game is over; find the winner and log the result.
+
+        Args:
+            log (list[tuple[int, str]]): a list of tuples that stores the
+                progress of the game [(verbosity_level, log_message)
         """
         if self.is_over:
-            print(" Game is over! ".center(SEPERATOR_LENGTH, "~"))
+            log.append((0, " Game is over! ".center(SEPERATOR_LENGTH, "-")))
+            log.append((1, str(self)))
             # find out which player(s) has(have) the most money remaining
             max_balance = max(player.balance for player in self.players)
             winners = [player for player in self.players
                        if player.balance == max_balance]
 
-            # print who is the winner
-            if len(winners) == 1:
-                print(f"{winners[0].name} won the game.")
-            else:
-                print("There is a Tie!" + ", ".join(winner.name
-                                                    for winner in winners)
-                      + "won the game together!")
+            # format result string
+            result_heading = ['Player', "Balance", "On Space"]
+            result_seperator = ["-" * (len(s) + 10) for s in result_heading]
+            result_str = (" The Result of the Game is ".center(
+                            SEPERATOR_LENGTH, "-") + "\n" +
+                          RESULT_ROW_TEMPLATE.format(*result_heading) + "\n" +
+                          RESULT_ROW_TEMPLATE.format(*result_seperator) + "\n")
+            for player in self.players:
+                # colour code the name of the winner
+                if player in winners:
+                    colour_code = COLOURS["Yellow"]
+                    colour_reset = COLOURS["Reset"]
+                    winner_name = player.name + " Won!"
+                    player.name = (f"{colour_code}{winner_name:^26}"
+                                   f"{colour_reset}")
 
-    def update(self, roll, log):
+                # colour code the property name
+                player_space = self.board.spaces[player.position]
+                if isinstance(player_space, Property):
+                    colour_code = COLOURS[player_space.colour]
+                    colour_reset = COLOURS["Reset"]
+                    player_space_name = (f"{colour_code}"
+                                         f"{player_space.name:^26}"
+                                         f"{colour_reset}")
+                else:
+                    player_space_name = player_space.name
+
+                player_row = [player.name, "$" + str(player.balance),
+                              player_space_name]
+                result_str += RESULT_ROW_TEMPLATE.format(*player_row) + '\n'
+
+            log.append((0, result_str))
+
+    def update(self, roll: int, log: list[tuple[int, str]]):
         """
-        Apply the effect of the dice roll to the game state.
+        Apply the effect of the dice roll to the game state and log the
+        actions.
+
+        Args:
+            roll (int): value of the dice roll
+            log (list[tuple[int, str]]): a list of tuples that stores the
+                progress of the game [(verbosity_level, log_message)
         """
         # get current player
         player = self.current_player
@@ -168,11 +205,11 @@ class Game:
         # next posotion of the player if board is unwrapped
         unwrapped_position = player.position + roll
 
-        # find how many time the player has past go
+        # find how many time the player has past Go
         pass_go_count = unwrapped_position // self.board.size
         for _ in range(pass_go_count):
-            log.append(f"{player.name} got ${DEFAULT_PASS_GO_BONUS} for "
-                       f"passing GO.")
+            log.append((2, f"{player.name} got ${DEFAULT_PASS_GO_BONUS} for "
+                           f"passing GO."))
         # update player balance for passing go
         player.balance += pass_go_count * DEFAULT_PASS_GO_BONUS
 
@@ -181,29 +218,29 @@ class Game:
 
         # get the space the player landed on
         landed_space = self.board.spaces[player.position]
-        log.append(f"{player.name} landed on {landed_space.name}.")
+        log.append((2, f"{player.name} landed on {landed_space.name}."))
         # check if the player landed on a property
         if isinstance(landed_space, Property):
             # buy the property if its not owned
             if landed_space.owner is None:
-                log.append(f"{landed_space.name} is not owned by anyone.")
+                log.append((2, f"{landed_space.name} is not owned by anyone."))
                 player.balance -= landed_space.price
                 landed_space.owner = player
                 # check whether the player has bankrupted
                 if player.balance < 0:
                     # game is over if bankrupted
                     self.is_over = True
-                    log.append(f"{player.name} bankrupted when buying "
-                               f"{landed_space.name} "
-                               f"for ${landed_space.price}.")
+                    log.append((2, f"{player.name} bankrupted when buying "
+                                   f"{landed_space.name} "
+                                   f"for ${landed_space.price}."))
                 else:
-                    log.append(f"{player.name} bought {landed_space.name} for "
-                               f"${landed_space.price}.")
+                    log.append((2, f"{player.name} bought {landed_space.name} "
+                                   f"for ${landed_space.price}."))
 
             # pay rent if the property is owned by someone else
             elif landed_space.owner is not player:
-                log.append(f"{landed_space.name} is owned "
-                           f"by {landed_space.owner.name}.")
+                log.append((2, f"{landed_space.name} is owned "
+                               f"by {landed_space.owner.name}."))
                 rent = self.board.calculate_rent(landed_space, log)
                 player.balance -= rent
                 landed_space.owner.balance += rent
@@ -211,18 +248,19 @@ class Game:
                 if player.balance < 0:
                     # game is over if bankrupted
                     self.is_over = True
-                    log.append(f"{player.name} bankrupted when paying "
-                               f"{landed_space.owner.name} ${rent} rent "
-                               f"for {landed_space.name}.")
+                    log.append((2, f"{player.name} bankrupted when paying "
+                                   f"{landed_space.owner.name} ${rent} rent "
+                                   f"for {landed_space.name}."))
                 else:
-                    log.append(f"{player.name} paid {landed_space.owner.name} "
-                               f"${rent} rent for {landed_space.name}.")
+                    log.append((2, f"{player.name} paid "
+                                   f"{landed_space.owner.name} "
+                                   f"${rent} rent for {landed_space.name}."))
 
-            # do nothing if the property is owned by the player themself
+            # only log the process if the property is owned by the player
             elif landed_space.owner is player:
-                log.append(f"{landed_space.name} is owned "
-                           f"by {landed_space.owner.name}. "
-                           "No rent needs to be paid.")
+                log.append((2, f"{landed_space.name} is owned "
+                               f"by {landed_space.owner.name}. "
+                               f"No rent needs to be paid."))
                 # potential extension for building upgardes to increase rent
 
         if not self.is_over:
@@ -280,10 +318,10 @@ class Game:
                 board_str += BOARD_ROW_TEMPLATE.format(*board_row) + "\n"
 
         # format the complete game state printing string
-        return (" Board ".center(SEPERATOR_LENGTH, "-") + "\n" +
+        return (" Board ".center(SEPERATOR_LENGTH, "~") + "\n" +
                 BOARD_ROW_TEMPLATE.format(*board_heading) + "\n" +
                 board_str +
-                " Players ".center(SEPERATOR_LENGTH, "-") + "\n" +
+                " Players ".center(SEPERATOR_LENGTH, "~") + "\n" +
                 PLAYER_ROW_TEMPLATE.format(*players_heading) + "\n" +
                 "\n".join([PLAYER_ROW_TEMPLATE.format(*row)
                            for row in players_print_cells]))

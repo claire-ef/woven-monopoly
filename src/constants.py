@@ -1,18 +1,21 @@
 # Game specific constants
-PRINT_LOG = False
+DEFAULT_VERBOSITY = 0
+CONSTANT_VERBOSITY = 1
 DEFAULT_INITIAL_BALANCE = 16
 DEFAULT_PASS_GO_BONUS = 1
 DEFAULT_RENT_MULTIPLIER = 1
 FULL_SET_MULTIPLIER = 2
 BOARD_ROW_TEMPLATE = "{:^15}{:^30}{:^16}{:^16}"
 PLAYER_ROW_TEMPLATE = "{:^38}{:^38}"
+RESULT_ROW_TEMPLATE = "{:^26}{:^25}{:^26}"
 SEPERATOR_LENGTH = 77
 DEFAULT_PLAYERS = ["Peter", "Billy", "Charlotte", "Sweedal"]
 COLOURS = {"Brown": "\033[38;5;94m",
-           "Red": "\033[91m", "Green":
-           "\033[92m", "Blue": "\033[94m",
+           "Red": "\033[91m",
+           "Green": "\033[92m",
+           "Yellow": "\033[93m",
+           "Blue": "\033[94m",
            "Reset": "\033[0m"}
-
 # logo adapted from https://emojicombos.com/monopoly-ascii-art
 MONOPOLY_LOGO = """
  _       __                       __  ___                              __       

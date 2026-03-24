@@ -1,9 +1,7 @@
 from src.game import Game, Player
-from src.utils import load_json_file, load_board, get_next_roll
-from src.constants import (MONOPOLY_LOGO,
-                           SEPERATOR_LENGTH,
-                           PRINT_LOG)
-from src.utils import get_inputs
+from src.utils import (get_inputs, load_json_file, load_board, get_next_roll,
+                       print_log)
+from src.constants import MONOPOLY_LOGO, SEPERATOR_LENGTH
 
 
 def main():
@@ -29,31 +27,34 @@ def main():
                            args.rent_multiplier),
                 players)
 
-    print(MONOPOLY_LOGO)
-    print(" The board is loaded! ".center(SEPERATOR_LENGTH, "~"))
-    print(game)
+    # a list of tuples to store the progress of the game
+    # list[tuple[int, str]]: [(verbosity_level, log_message)]
+    log = []
+    log.append((0, MONOPOLY_LOGO))
+    log.append((0, " Welcome to Woven Monopoly! ".center(
+        SEPERATOR_LENGTH, "-")))
+    log.append((0, " Game has started! ".center(SEPERATOR_LENGTH, "-")))
+    log.append((0, " Game Running... ".center(SEPERATOR_LENGTH, "-")))
+    log.append((1, str(game)))
 
     # start game playing
-    print(" Game has started! ".center(SEPERATOR_LENGTH, "~"))
-    log = []
     roll_index = 0
     while not game.is_over:
-        log.append(f" Turn {roll_index + 1} ".center(SEPERATOR_LENGTH, "~"))
+        log.append((2,
+                    f" Turn {roll_index + 1} ".center(SEPERATOR_LENGTH, "-")))
         # player rolls the dice
         roll_value, roll_index = get_next_roll(dice_rolls, roll_index,
                                                args.random_dice_roll)
-        log.append(f"{game.current_player.name} rolled {roll_value}.")
+        log.append((2, f"{game.current_player.name} rolled {roll_value}."))
         # apply the effect of the dice roll
         game.update(roll_value, log)
-        # log.append(str(game))
-
-    # print the process of the game if PRINT_LOG is True
-    if PRINT_LOG:
-        print("\n".join(log))
+        log.append((3, str(game)))
 
     # end the game when game is over
-    game.end()
-    print(game)
+    game.end(log)
+
+    # print game result
+    print_log(log, args.verbosity)
 
 
 if __name__ == "__main__":

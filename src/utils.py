@@ -4,7 +4,9 @@ import argparse
 from src.game import Board, Go, Property
 from src.constants import (DEFAULT_PLAYERS,
                            DEFAULT_INITIAL_BALANCE,
-                           DEFAULT_RENT_MULTIPLIER)
+                           DEFAULT_RENT_MULTIPLIER,
+                           DEFAULT_VERBOSITY,
+                           CONSTANT_VERBOSITY)
 
 
 def load_json_file(path: str) -> list:
@@ -97,20 +99,30 @@ def get_inputs():
                         help="Whether or not to use random dice rolls, the "
                              "default is false")
 
+    parser.add_argument("-v", "--verbosity", type=int,
+                        choices=(0, 1, 2, 3), nargs="?",
+                        default=DEFAULT_VERBOSITY, const=CONSTANT_VERBOSITY,
+                        help="The level of verbosity of the output\n"
+                             "0 (default): logo and game result\n"
+                             "1 (const): level 0 with inital and ending game "
+                             "state\n"
+                             "2: level 1 with player actions\n"
+                             "3: level 2 with game state at each turn")
+
     parser.add_argument("--initial_balance",
                         type=float,
                         default=DEFAULT_INITIAL_BALANCE,
                         help=f"The amount of money each player starts the "
                              f"game with, the default is "
                              f"${DEFAULT_INITIAL_BALANCE}")
-    
+
     parser.add_argument("--rent_multiplier",
                         type=float,
                         default=DEFAULT_RENT_MULTIPLIER,
                         help=f"The proportion of the rent to the price of the"
                              f"property the default is "
                              f"${DEFAULT_RENT_MULTIPLIER}")
-    
+
     parser.add_argument("--players", nargs="+", default=DEFAULT_PLAYERS,
                         metavar="player_name",
                         help="Participating player names in game order, "
@@ -131,3 +143,18 @@ def get_inputs():
         parser.error(f"Only {len(args.players)} player provided."
                      f"There must be at least 2 players.")
     return args
+
+
+def print_log(log: list[tuple[int, str]], verbosity: int):
+    """
+    Print game logging at the given verbosity.
+    Args:
+        log (list[tuple[int, str]]): a list of tuples that stores the
+            progress of the game [(verbosity_level, log_message)
+        verbosity (int): The level of verbosity of the output
+    """
+    for item in log:
+        verbosity_level = item[0]
+        log_msg = item[1]
+        if verbosity_level <= verbosity:
+            print(log_msg)
