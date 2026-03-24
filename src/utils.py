@@ -1,6 +1,8 @@
 import json
 import random
+import argparse
 from src.game import Board, Go, Property
+from src.constants import DEFAULT_PLAYERS
 
 
 def load_json_file(path: str) -> list:
@@ -67,3 +69,38 @@ def get_next_roll(rolls: list[int], current_roll_index: int,
         raise IndexError(f"A roll at index {current_roll_index} is requested, "
                          f"but there are only {len(rolls)} rolls given")
     return rolls[current_roll_index], current_roll_index + 1
+
+
+def get_inputs():
+    # set up parser to get game options from command line input
+    parser = argparse.ArgumentParser(prog="woven_monopoly",
+                                     description="This is a application that "
+                                     "plays the game of Woven Monopoly")
+    parser.add_argument("path_to_board", type=str,
+                        help="Path to the board json file.")
+    parser.add_argument("-p", "--path_to_rolls", type=str,
+                        metavar="path_to_rolls",
+                        help="Path to the dice rolls json file")
+    parser.add_argument("-r", "--random_dice_roll",
+                        action="store_true",
+                        help="Whether or not to use random dice rolls, the "
+                        "default is false")
+    parser.add_argument("--players", nargs="+", default=DEFAULT_PLAYERS,
+                        metavar="player_name",
+                        help="Participating player names in game order, "
+                             "seperated by space. If not provided, a set of "
+                             "four default players are used: Peter, Billy, "
+                             "Charlotte, Sweedal")
+    args = parser.parse_args()
+
+    # check the validity of command line inputs
+    if not args.random_dice_roll and args.path_to_rolls is None:
+        # if random dice rolling is disabled, a file path to preset dice rolls
+        # must be provided
+        parser.error("Random dice rolling is disabled"
+                     "but preset dice rolls are not provided.")
+    if len(args.players) < 2:
+        # there must be at least 2 players.
+        parser.error(f"Only {len(args.players)} player provided."
+                     f"There must be at least 2 players.")
+    return args

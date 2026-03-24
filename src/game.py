@@ -2,7 +2,6 @@ from math import ceil
 from src.constants import (INITIAL_BALANCE,
                            RENT_MULTIPLIER,
                            FULL_SET_MULTIPLIER,
-                           DEFAULT_PLAYERS,
                            SEPERATOR_LENGTH,
                            PASS_GO_BONUS,
                            COLOURS,
@@ -136,9 +135,9 @@ class Game:
         is_over (bool): whether the game has ended, game ends when anyone of
                         the players is bankrupted
     """
-    def __init__(self, board: Board):
+    def __init__(self, board: Board, player_names: list[str]):
         self.board = board
-        self.players = [Player(name) for name in DEFAULT_PLAYERS]
+        self.players = [Player(name) for name in player_names]
         self.current_player_index = 0
         self.current_player = self.players[self.current_player_index]
         self.is_over = False
@@ -238,26 +237,22 @@ class Game:
         """
         Create a string representing the state of game for printing.
         """
+        # extract board information
         board_heading = ["Type", "Name", "Owned By", "On Space"]
         board_print_cells = []
         for space in self.board.spaces:
             if isinstance(space, Go):
-                space_print_cells = [space.type, space.name, ""]
+                space_name = space.name
+                space_owner = ""
             elif isinstance(space, Property):
-                color_code = COLOURS[space.colour]
-                color_reset = COLOURS["Reset"]
-                if space.owner is None:
-                    space_print_cells = [space.type,
-                                         (f"{color_code}{space.name:^30}"
-                                          f"{color_reset}"),
-                                         ""]
-                else:
-                    space_print_cells = [space.type,
-                                         (f"{color_code}{space.name:^30}"
-                                          f"{color_reset}"),
-                                         space.owner.name]
-            board_print_cells.append(space_print_cells)
+                # colour code the name of the property
+                colour_code = COLOURS[space.colour]
+                colour_reset = COLOURS["Reset"]
+                space_name = f"{colour_code}{space.name:^30}{colour_reset}"
+                space_owner = space.owner.name if space.owner else ""
+            board_print_cells.append([space.type, space_name, space_owner])
 
+        # extract players information
         players_heading = ["Name", "Balance"]
         players_print_cells = []
         players_on_space = dict()
@@ -269,6 +264,7 @@ class Game:
             else:
                 players_on_space[player.position] = [player.name]
 
+        # format board printing string
         board_str = ""
         for space_i in range(self.board.size):
             if space_i in players_on_space:
@@ -285,6 +281,7 @@ class Game:
                 board_row = board_print_cells[space_i] + [""]
                 board_str += BOARD_ROW_TEMPLATE.format(*board_row) + "\n"
 
+        # format the complete game state printing string
         return (" Board ".center(SEPERATOR_LENGTH, "-") + "\n" +
                 BOARD_ROW_TEMPLATE.format(*board_heading) + "\n" +
                 board_str +
