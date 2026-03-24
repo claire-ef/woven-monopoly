@@ -118,7 +118,7 @@ class Board():
             log.append((2, f"{property.owner.name} owns the whole set. "
                            f"Rent is multiplied by {FULL_SET_MULTIPLIER}."))
             return property.rent * FULL_SET_MULTIPLIER
-        return property.rent
+        return round(property.rent, 1)
 
 
 class Game:
@@ -183,7 +183,7 @@ class Game:
                 else:
                     player_space_name = player_space.name
 
-                player_row = [player.name, "$" + str(player.balance),
+                player_row = [player.name, "$" + str(round(player.balance, 1)),
                               player_space_name]
                 result_str += RESULT_ROW_TEMPLATE.format(*player_row) + '\n'
 

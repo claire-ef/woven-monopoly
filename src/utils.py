@@ -110,7 +110,7 @@ def get_inputs():
                              "3: level 2 with game state at each turn")
 
     parser.add_argument("--initial_balance",
-                        type=float,
+                        type=int,
                         default=DEFAULT_INITIAL_BALANCE,
                         help=f"The amount of money each player starts the "
                              f"game with, the default is "
@@ -132,12 +132,16 @@ def get_inputs():
 
     args = parser.parse_args()
 
-    # check the validity of command line inputs
+    # check the validity of command line inputs\
     if not args.random_dice_roll and args.path_to_rolls is None:
         # if random dice rolling is disabled, a file path to preset dice rolls
         # must be provided
         parser.error("Random dice rolling is disabled"
                      "but preset dice rolls are not provided.")
+    elif args.random_dice_roll and args.path_to_rolls is not None:
+        # if both random dice rolling is enabled and a file path is provided
+        print("Random dice rolling enabled, ignoring the path_to_rolls.")
+
     if len(args.players) < 2:
         # there must be at least 2 players.
         parser.error(f"Only {len(args.players)} player provided."
